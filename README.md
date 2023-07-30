@@ -24,6 +24,7 @@ See https://en.wikipedia.org/wiki/Permutation#Cycle_notation
 - D = (drf,dbr,dlb,dfl) (df,dr,db,dl)
 
 For example: F consists of permutating 4 corner pieces (ful,fru,fdr,fld) while also permutating 4 edge pieces (fu,fr,fd,fl).
+
 When calculating (FR)^4, which means repeating 4 times doing a F followed by a R rotation, we get:
 > (ful,ldf,rfd,dbr,urb)++ (fru)+ (fu,fr,ur,fd,br,fl,dr)
 
