@@ -17,7 +17,7 @@ Calculator for Rubic's Cube operations
 See https://en.wikipedia.org/wiki/Permutation#Cycle_notation
 
 - F = (ful,fru,fdr,fld) (fu,fr,fd,fl)
-- - R = (ruf,rbu,rdb,rfd) (ru,rb,rd,rf)
+- R = (ruf,rbu,rdb,rfd) (ru,rb,rd,rf)
 - B = (bur,blu,bdl,brd) (bu,bl,bd,br)
 - L = (lub,lfu,ldf,lbd) (lu,lf,ld,lb)
 - U = (ufr,ulf,ubl,urb) (uf,ul,ub,ur)
