@@ -1,0 +1,872 @@
+<html>
+<head>
+<title>Rubic's kubus permuteren</title>
+
+
+<style type="text/css">
+
+#container{	position:	relative;
+		margin:		auto;
+		border:		2px solid #000000;
+		width:		600px;
+}
+
+div.control{	border:	2px solid #000000;
+		cursor:	pointer;
+}
+
+#display{	border:		2px solid #ff0000;
+		padding:	4px 4px 4px 4px;
+		cursor:		pointer;
+}
+
+#disp{	border:		2px solid #ff0000;
+	padding:	4px 4px 4px 4px;
+	cursor:		pointer;
+	font-weight:	bold;
+}
+
+
+div.mem{cursor:		pointer;
+}
+
+div.memId{cursor:	pointer;
+	font-weight:	bold;
+}
+
+table 
+{
+empty-cells: show;
+}
+
+
+</style>
+
+<script language="javascript">
+
+////////////////////////////////////////////////////////////////
+////////						////////
+////////		private functies		////////
+////////						////////
+////////////////////////////////////////////////////////////////
+
+var SEQ = "SEQ";	// huidige sequentie van permutaties in "display"
+
+var seq = "seq";	// huidige sequentie van permutaties in "disp" (afkorting)
+
+var Mem	= new Array();
+Mem[0]	= "(ful,fru,fdr,fld) (fu,fr,fd,fl)";
+Mem[1]	= "(ruf,rbu,rdb,rfd) (ru,rb,rd,rf)";
+Mem[2]	= "(bur,blu,bdl,brd) (bu,bl,bd,br)";
+Mem[3]	= "(lub,lfu,ldf,lbd) (lu,lf,ld,lb)";
+Mem[4]	= "(ufr,ulf,ubl,urb) (uf,ul,ub,ur)";
+Mem[5]	= "(drf,dbr,dlb,dfl) (df,dr,db,dl)";
+
+var MemId = new Array();
+MemId[0]  = "F";
+MemId[1]  = "R";
+MemId[2]  = "B";
+MemId[3]  = "L";
+MemId[4]  = "U";
+MemId[5]  = "D";
+
+var candList	= new Array();
+var candIdList	= new Array();
+var temp		= Mem.slice(0);
+var tempId		= MemId.slice(0);
+candList[0]		= temp;
+candIdList[0]	= tempId;
+
+function newMem(){
+	var sequentie 	= prompt("Nieuwe sequentie",printCykels(SEQ));
+
+	// geldigheid testen
+	var cykels	= parseElements(sequentie);
+	for(var i=0;i<cykels.length;i++){
+		if(! isCykel(cykels[i])){
+			alert("Sequentie bevat een ongeldige cykel: alle elementen van een cykel moeten dezelfde lengte hebben.");
+			return;
+		}
+	}
+
+	Mem[Mem.length]		= sequentie;
+	MemId[MemId.length]	= prompt("Bijbehorende lettercombinatie",seq);
+
+	writeMemory();
+}
+
+function writeMemory(){
+	var divMem = "<table>";
+	for(var i=0;i<Mem.length;i++){
+		divMem = divMem + "<tr><td>" +
+			"<div class='memId' id='MId" + i + "' onclick='add(" + i + ")'>"+MemId[i]+"</div>" +
+			"</td><td>" + 
+			"<div class='mem' id='M" + i + "' onclick='add(" + i + ")'>" + Mem[i] + "</div>" + 
+			"</td></tr>";
+
+	}
+	divMem	= divMem + "</table>";
+	if(Mem.length<1){
+		divMem = "";
+	}
+	document.getElementById("memory").innerHTML = divMem;
+}
+
+function clearDisplays(){
+	document.getElementById("display").innerHTML = ".";
+	document.getElementById("disp").innerHTML = ".";
+	SEQ	= "";
+	seq	= "";
+}
+
+function removeSpaces(){
+	var spaties	= SEQ.split(" ");
+	SEQ = "";
+	for(var i=0;i<spaties.length;i++){
+		SEQ	= SEQ + spaties[i];
+	}
+}
+
+function showDisplays(){
+	removeSpaces();
+	document.getElementById("display").innerHTML = printCykels(SEQ);
+	document.getElementById("disp").innerHTML = seq;
+	if(SEQ == ""){	// neutraal element
+		document.getElementById("display").innerHTML = "e";
+	}
+}
+
+function refresh(){
+	clearDisplays();
+	writeMemory();
+}
+
+function add(idNumber){
+	var macht = prompt("Gehele macht","1");
+
+	var S	= document.getElementById("M" + idNumber).innerHTML;
+	var s	= document.getElementById("MId" + idNumber).innerHTML;
+
+	var sign	= "";
+
+	if(macht < 0){
+		S	= inverse(S);
+		macht	= macht*(-1);	// positief maken
+		sign	= "-";
+	}
+	if(macht > 0){
+		for(var i=0;i<macht;i++){
+			SEQ = SEQ + " " + S;
+		}
+		
+		if(macht > 1 || sign != ""){
+			seq = seq + "(" + s + ")" + "<sup>" + sign + macht + "</sup>";
+		}
+		else if(macht == 1){	// niet nodig: (&& sign != "")
+			seq = seq + s;
+		}
+	}
+	showDisplays();
+}
+
+function power(){
+	var macht = prompt("Gehele macht","2");
+
+	var sign	= "";
+
+	if(macht<0){
+		SEQ	= inverse(SEQ);
+		macht	= macht*(-1);	// positief maken
+		sign	= "-";
+	}
+	if(macht>1 || sign != ""){
+		var temp	= SEQ;
+		for(var i=1;i<macht;i++){		// er staat reeds 1 keer de factor
+			SEQ = SEQ + temp;
+		}
+
+		seq = "(" + seq + ")" + "<sup>" + sign + macht + "</sup>";
+	}
+	showDisplays();
+}
+
+function candidates(){
+	var candSize	= prompt("Maximale lengte","3");	// maximum aantal 90 graden rotaties van een kandidaat
+	
+	for(var k=0;candList.length < candSize;k++){
+		
+		candList[k+1]	= new Array();
+		candIdList[k+1]	= new Array();
+													// var m			= 0;
+		for(var i=0;i<candList[k].length;i++){
+			for(var j=0;j<6;j++){
+				SEQ	= candList[k][i] + " " + Mem[j];
+				seq = candIdList[k][i] + MemId[j];
+													// if aantal_tail < 4, dan toevoegen en m++
+				calculate();
+				candList[k+1][i*6+j]	= SEQ;
+				candIdList[k+1][i*6+j]	= seq;
+			}
+		}
+	}
+	
+	writeCandidates();
+}
+
+function writeCandidates(){
+	var divCand = "<table>";
+	var k		= 0;
+	for(var i=0;i<candList.length;i++){
+		for(var j=0;j<candList[i].length;j++){
+			divCand = divCand + "<tr><td>" +
+				"<div class='memId' id='MId" + k + "' onclick='add(" + k + ")'>"+candIdList[i][j]+"</div>" +
+				"</td><td>" + 
+				"<div class='mem' id='M" + k + "' onclick='add(" + k + ")'>" + candList[i][j] + "</div>" + 
+				"</td></tr>";
+			k++;
+		}
+	}
+	divCand	= divCand + "</table>";
+	if(Mem.length<1){
+		divCand = "";
+	}
+	document.getElementById("memory").innerHTML = divCand;
+}
+
+function calculate(){
+	var temp;
+
+	//////////////////////
+	// spaties verwijderen
+	removeSpaces();
+
+	////////////////////////////////
+	// initialisatie van de gegevens
+	var q	= SEQ.split("(");	// cykels uit de permutatie
+	var p	= new Array();
+	for(var i=0;i<q.length-1;i++){	// lege plaats q[0] weghalen
+		p[i]	= q[i+1];
+	}
+
+	var M	= p.length;		// aantal cykels
+
+	var c	= new Array();		// lengte M
+	var cykel	= new Array();	// lengte M
+	var twist	= new Array();	// lengte M
+	var E	= new Array();		// lengte n
+	var n	= new Array();		// -> n-cykel
+	var r	= new Array();		// element-lengte: (123,234,341,412) heeft r=3, n=4
+
+	for(var i=0;i<M;i++){
+		c[i]	= p[i].split(")");	// het cykel-gedeelte en de eventuele twist
+		cykel[i]	= c[i][0];	// "a1,...,an" voor een n-cykel
+		twist[i]	= c[i][1];	// een aantal plussen ("" of "+" of "++" of ..)
+		E[i]	= cykel[i].split(",");	// elementen uit de cykel
+		n[i]	= E[i].length;		// de lengte van de cykel; een n-cykel
+		r[i]	= E[i][0].length;	// lengte van 1 element
+	}
+
+	///////////////////////////////////////////////////////////
+	// verwijder identieke afbeeldingen (1-cykels zonder twist)
+		// vb: (123)(1,2)(234)+ wordt (1,2)(234)+
+	var j	= 0;			// aantal identieke cykels
+	for(var i=0;i<M;i++){
+		c[i-j]		= c[i];
+		cykel[i-j]	= cykel[i];
+		twist[i-j]	= twist[i];
+		E[i-j]	= E[i];
+		n[i-j]	= n[i];
+		r[i-j]	= r[i];
+
+		if(n[i] == 1 && twist[i] == ""){
+			j = j + 1;
+		}
+	}
+	M	= M-j;		// de arrays inkorten
+	c.length	= M;
+	cykel.length	= M;
+	twist.length	= M;
+	E.length	= M;
+	n.length	= M;
+	r.length	= M;
+
+	/////////////////////////////////////////////////////////////////////////////////////////
+	// ordenen op r (van groot naar klein): (M-1)! keer doorlopen is vereist in het algemeen:
+		// vb: M=3
+		// M-1 operaties: (r=1)(r=2)(r=3) -> (r=2)(r=1)(r=3) -> (r=2)(r=3)(r=1):
+		// nu is de laatste r=1 op zijn plaats
+		// nu nog M-2 operaties: (r=2)(r=3)(r=1) -> (r=3)(r=2)(r=1):
+		// nu zijn er M-1 achteraan op hun plaats en dus ook M op hun plaats
+	for(var j=0;j<M-1;j++){
+		for(var i=1;i<M-j;i++){
+			if(r[i-1] < r[i]){
+				temp	= cykel[i-1];
+				cykel[i-1]	= cykel[i];
+				cykel[i]	= temp;
+				temp	= twist[i-1];
+				twist[i-1]	= twist[i];
+				twist[i]	= temp;
+				temp	= E[i-1];
+				E[i-1]	= E[i];
+				E[i]	= temp;
+				temp	= n[i-1];
+				n[i-1]	= n[i];
+				n[i]	= temp;
+				temp	= r[i-1];
+				r[i-1]	= r[i];
+				r[i]	= temp;
+			}
+		}
+	}
+
+	//////////////////////////////
+	// twee extra arrays bijhouden
+	var Rindex	= new Array();		// houdt de index van de eerste cykel met deze r[i] bij
+	var Rsize	= new Array();		// geeft het aantal (steeds opeenvolgende) r[i] die voorkomen
+	Rindex[0]	= 0;			// triviaal
+	temp		= 1;			// houdt Rsize bij
+	for(var i=1;i<M;i++){
+		Rindex[i]	= Rindex[i-1];
+		if(r[i-1] > r[i]){			// r[i] != r[i-1]
+
+			Rindex[i]	= i;		// nieuwe Rindex vanaf index i
+
+			for(var j=Rindex[i-1];j<Rindex[i-1]+temp;j++){
+				Rsize[j]	= temp;	// Rsize verandert
+			}
+
+			temp	= 0;
+		}
+		temp		= temp + 1;	// houdt Rsize bij
+	}
+	// laatste Rsize nog schrijven
+	for(var j=Rindex[M-temp];j<Rindex[M-temp]+temp;j++){
+		Rsize[j]	= temp;		// Rsize verandert
+	}
+
+
+	////////////////////////////
+	////////////////////////////
+	// afbeelden
+
+	var STUK;			// huidige component van de huidige cykel
+	var CYKEL	= new Array();	// de cykel die geschreven wordt
+	var R		= -1;		// lengte van de elementen van de huidige cykel (-1 is startwaarde)
+	var result	= "";
+	var gedaan	= new Array();	// gedaan is array met alle gedane stukken van alle cykels
+
+	var beeld;
+
+
+	for(var i=0;i<M;i++){			// M is het aantal cykels
+		R	= r[i];			// huidige cykel-element-lengte
+
+		for(var j=0;j<n[i];j++){			// n[i] is lengte van de cykel
+			STUK	= E[i][j];			// E[i][j] is j-de component van i-de cykel
+
+			var b		= i;				// cykel index waar huidig element inzit
+
+			if(contains(gedaan,STUK) > -1){			// STUK al gedaan
+				// direct naar volgende stuk
+			}
+			else{
+
+			var beeld	= new Array();
+
+			while(contains(CYKEL,STUK) == -1){		// loopt zolang deze CYKEL niet af is
+				CYKEL[CYKEL.length]	= STUK;		// nieuwe component van deze cykel
+				gedaan[gedaan.length]	= STUK;
+
+					// zoek nieuwe b: eerste cykel-index waarin STUK voorkomt
+					b	= getCykel(E,Rindex[i],Rindex[i]+Rsize[i],STUK);
+
+					var index	= contains(E[b],STUK);		// component index in b-de cykel
+
+					beeld[beeld.length]	= img(E[b],index,twist[b]);	// voorlopig beeld
+
+					// STUK -> permutatie: E[b][index] -> beeld[beeld.length-1]
+					beeld[beeld.length-1]	= getImage(STUK,E[b][index],beeld[beeld.length-1]);	// vervangen
+
+					// b is de index van cykel waar dit beeld inzit (kan inzitten)
+					for(var f=b+1;f < Rindex[i]+Rsize[i];f++){	// of R == r[i]
+						var vorig	= beeld[beeld.length-1];	// laatste beeld
+						var index	= contains(E[f],vorig);
+						if(index > -1){
+							beeld[beeld.length]	= getImage(vorig, E[f][index], img(E[f],index,twist[f]));
+							b	= f;		// signaal waar er een volgend beeld gevonden is
+						}
+					}
+
+					// ga nu verder met dit beeld-element
+					STUK	= beeld[beeld.length-1];
+
+			} // end while
+
+			// twist van CYKEL (!!! twist conventie: eerste -> beeld van laatste)
+			var TWIST	= getTwist(CYKEL[0],STUK);
+
+			// CYKEL gedaan
+			result	= result + writeCykel(CYKEL,TWIST);
+
+			CYKEL	= new Array();
+			beeld	= new Array();
+
+			} // end else
+
+		}
+
+	}
+	
+	SEQ	= result;
+	showDisplays();	
+}
+
+onload = refresh;
+
+////////////////////////////////////////////////////////////////
+////////						////////
+////////		/ private functies		////////
+////////						////////
+////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////
+////////						////////
+////////		publieke functies		////////
+////////						////////
+////////////////////////////////////////////////////////////////
+
+
+function printCykels(cykels){
+	// cykels is een string zonder spaties van cykels (en hun twist)
+	// geeft een string terug waarbij er een spatie staat tussen elke cykel
+	var c		= cykels.split("(");
+
+	if(c.length < 2){		// geen "(" gevonden
+		return cykels;
+	}
+	var result	= "(" + c[1];
+
+	for(var i=2;i<c.length;i++){	// vanaf i=2 omdat c[0]=="" en c[1] al gedaan (wegens de spatie)
+		result	= result + " (" + c[i];
+	}
+	return result;
+}
+
+function writeCykel(cykel,twist){
+	// cykel is een array van componenten
+	// twist is een string van "+" met een lengte kleiner dan cykel.length
+	var n		= cykel.length;
+	var result	= "";
+
+	if(n > 1 || twist != ""){			// schrijf geen identieke
+		result	= result + "("	+ cykel[0];
+		for(var l=1;l<n;l++){
+			result	= result + "," + cykel[l];
+		}
+		result	= result + ")" + twist;
+	}
+	return result;
+}
+
+function parseElements(c){
+	// c is een string van cykels (met eventuele twist: die wordt genegeerd)
+	// geeft een 2-dim array terug van de cykels als arrays van elementen
+
+	// spaties verwijderen
+	var spaties	= c.split(" ");
+	c = "";
+	for(var i=0;i<spaties.length;i++){
+		c	= c + spaties[i];
+	}
+
+	// initialisatie van de gegevens
+	var q	= c.split("(");		// cykels uit de permutatie
+	var p	= new Array();
+	for(var i=0;i<q.length-1;i++){	// lege plaats q[0] weghalen
+		p[i]	= q[i+1];
+	}
+	var M	= p.length;		// aantal cykels
+
+	var c	= new Array();		// lengte M
+	var result	= new Array();	// lengte M
+
+	for(var i=0;i<M;i++){
+		c[i]		= p[i].split(")");	// het cykel-gedeelte en de eventuele twist
+		result[i]	= c[i][0].split(",");	// c[i][0] is "a1,...,an" voor een n-cykel
+	}
+
+	return result;
+}
+
+function inverseTwist(twist,r){
+	// twist is een string die enkel "+" bevat
+	// r is de lengte van een cykel-element
+	// geeft de complementaire twist
+		// vb: "+" -> "++" voor r=3
+	var l	= twist.length;
+	var c	= (r - l) % r;	// complementaire lengte
+
+	var result	= "";
+	for(var i=0;i<c;i++){
+		result	= result + "+";
+	}
+	return result;
+}
+
+function inverse(cykels){
+	// cykels is een string van cykels (met eventuele twist)
+	// geeft een string terug: de inverse
+
+	// spaties verwijderen
+	var spaties	= cykels.split(" ");
+	cykels = "";
+	for(var i=0;i<spaties.length;i++){
+		cykels	= cykels + spaties[i];
+	}
+
+	// initialisatie van de gegevens
+	var q	= cykels.split("(");	// cykels uit de permutatie
+	var p	= new Array();
+	for(var i=0;i<q.length-1;i++){	// lege plaats q[0] weghalen
+		p[i]	= q[i+1];
+	}
+
+	var M	= p.length;		// aantal cykels
+
+	var c	= new Array();		// lengte M
+	var cykel	= new Array();	// lengte M
+	var twist	= new Array();	// lengte M
+	var E	= new Array();		// lengte n
+	var n	= new Array();		// -> n-cykel
+	var r	= new Array();		// element-lengte: (123,234,341,412) heeft r=3, n=4
+
+	for(var i=0;i<M;i++){
+		c[i]	= p[i].split(")");	// het cykel-gedeelte en de eventuele twist
+		cykel[i]	= c[i][0];	// "a1,...,an" voor een n-cykel
+		twist[i]	= c[i][1];	// een aantal plussen ("" of "+" of "++" of ..)
+		E[i]	= cykel[i].split(",");	// elementen uit de cykel
+		n[i]	= E[i].length;		// de lengte van de cykel; een n-cykel
+		r[i]	= E[i][0].length;	// lengte van 1 element
+	}
+
+
+	// inverteren
+	var temp;
+
+	// inverteren: elementen van cykels (voor elke cykel)
+		// vb: (a,b,..,z) -> (z,..,b,a)
+	for(var i=0;i<M;i++){
+		twist[i]	= inverseTwist(twist[i],r[i]);
+		temp	= new Array();
+		for(var j=0;j<n[i];j++){
+			temp[j]	= E[i][n[i]-j-1];
+		}
+		E[i]	= temp;
+	}
+
+	temp		= new Array();
+	tempTwist	= new Array();
+
+	// inverteren: cykels
+		// vb: (c1)(c2)(c3) -> (c3)(c2)(c1)
+	for(var i=0;i<M;i++){
+		temp[i]		= E[M-i-1];
+		tempTwist[i]	= twist[M-i-1];
+	}
+	E	= temp;
+	twist	= tempTwist;
+
+	// inverse in een string zetten
+	var result	= "";
+
+	for(var i=0;i<M;i++){
+		result		= result + writeCykel(E[i],twist[i]);
+	}
+
+	return	result;
+}
+
+
+function getCykel(cykels,start,stop,component){
+	// geeft de index van de eerste cykel waarin deze component voorkomt vanaf start (tot stop)
+	// geeft -1 terug als deze component niet gevonden is
+	// cykels is een array van cykels (een cykel is een array met componenten) (dus cykels is 2-dim array)
+	// start is de eerste index warin gezocht moet worden
+	// stop de de eerste index vanwaar niet meer gezocht moet worden (dus in stop wordt niet gezocht)
+	// start en stop zijn geldige indices van de array cykels
+	var index	= start;				// zet index in het begin
+	while(index < stop && contains(cykels[index],component) == -1){	// loopt zolang niet gevonden
+		index	= index + 1;
+	}
+	if(index == stop){		// niet gevonden
+		index	= -1;		// signaalwaarde
+	}
+	return index;
+}
+
+
+function getTwist(input,output){
+	// beschrijft de rotatie-permutatie van input naar output met twist (enkel met "+")
+	// input en output zijn strings (cykel-componenten)
+	// output is een rotatie-pemutatie van input
+	var inp		= input.split("");
+	var result	= "";
+	var rot		= output.indexOf(inp[0]);
+
+	for(var i=0;i<rot;i++){
+		result	= result + "+";
+	}
+
+	return result;
+}
+
+
+function getTwistImage(input,twist){
+	// input is een string: een component van een cykel
+	// twist is een string die enkel "+" bevat
+	// geeft de gepermuteerde input volgens de twist
+		// vb: (1,2,3)+ heeft als resultaat (2,3,1)
+
+	var symbols	= input.split("");
+	var size	= symbols.length;
+	var plus	= twist.split("+");
+	var rotatie	= (plus.length-1);
+	var result	= "";
+
+	for(var i=0;i<size;i++){
+		result	= result + symbols[(i-rotatie + size) % size];
+	}
+	return result;
+}
+
+function img(cykel,j,twist){
+	// geeft het beeld van de j-component
+	// cykel is een array van componenten
+	// j-de component van de cykel: j is een index van de array cykel
+	// twist is de twist van de cykel
+	var n		= cykel.length;
+	var result	= "";
+	if(twist == "" || j < n-1){
+		result = cykel[(j+1) % n];
+	}
+	if(j == n-1 && twist != ""){
+		result	= getTwistImage(cykel[0],twist);
+	}
+	return result;
+}
+
+
+function getImage(input,perm,output){
+	// input is de cykel-component die we afbeelden op de cykel-component output via perm
+	// input, perm en output zijn strings van dezelfde lengte
+	// perm is een permutatie van input
+	var size	= input.length;
+	var symbols	= input.split("");
+	var out		= output.split("");
+	var result	= "";
+	for(var i=0;i<size;i++){
+		//alert(symbols[i]+" "+perm.indexOf(symbols[i]));
+		//alert("output[perm.indexOf(symbols[i])] " + out[perm.indexOf(symbols[i])]);
+		result	= result + out[perm.indexOf(symbols[i])];
+	}
+	//alert("getImage: " + result);
+	return	result;
+}
+
+function isCykel(c){
+	// gaat na of c een geldige cykel is: elementen van dezelfde lengte
+	// c is een array van elementen (strings)
+	if(c.length == 0){	// per afspraak is een lege array geen geldige cykel
+		return false;
+	}
+	else{
+		var size	= c[0].length;
+		for(var i=1;i<c.length;i++){
+			if(c[i].length != size){
+				return false;
+			}
+		}
+		return true;
+	}
+}
+
+function contains(cykel,element){
+	// geeft de index van het overeenkomstige element terug; anders -1 (het eerste element dat overeenkomt)
+	// het overeenkomstige element uit cykel moet dezelfde lengte hebben als de lengte van element
+	// cykel is een array van elementen (strings) met niet noodzakelijk een zelfde lengte als element
+	// element is een string
+	// element zit in de cykel als er een (niet noodzakelijk cyclische) permutatie van dat element in de cykel zit
+		// vb: (12,23) bevat zowel "12" als "21"
+		// vb: (123,234) bevat niet "12" noch "23"
+	var ok		= true;					// geeft aan of een symbol in de cykel zit
+	var symbols	= element.split("");			// de sybolen van het element
+	var temp;
+
+	for(var i=0;i<cykel.length;i++){			// gaat alle elementen van de cykel af
+		ok	= true;
+
+		var e	= element;	// het gegeven element
+		var c	= cykel[i];	// i-de element van cykel
+
+		for(var j=0;j<symbols.length;j++){		// gaat alle symbolen van het element af
+			var s	= symbols[j];
+
+			if(c.indexOf(s) < 0 ){		// bevat het symbool niet
+				ok	= false;
+				j	= symbols.length;		// stoppen
+			}
+			else{
+				temp	= c.split(s);
+				c	= "";
+				for(var k=0;k<temp.length;k++){
+					c	= c + "" + temp[k];
+				}
+
+				temp	= e.split(s);
+				e	= "";
+				for(var k=0;k<temp.length;k++){
+					e	= e + "" + temp[k];
+				}
+
+				if(e.length != c.length){		// verschillende lengte
+					ok	= false;
+					j	= symbols.length;	// stoppen
+				}
+			}
+		}
+		if(ok == true && element.length == cykel[i].length){
+			// gevonden (element.length == cykel[i].length moet eigenlijk niet meer gecheckt worden)
+			return i;	// de index van het overeenkomstige element
+		}
+	}
+
+	// ok == false (of cykel is een lege array)
+	return -1;
+}
+
+////////////////////////////////////////////////////////////////
+////////						////////
+////////		/ publieke functies		////////
+////////						////////
+////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////
+////////						////////
+////////		test functies			////////
+////////						////////
+////////////////////////////////////////////////////////////////
+
+/*
+function testContains(){
+	var c	= new Array();
+	c[0]	= "23";
+	c[1]	= "12";
+
+	alert(isCykel(c)+ " ja/nee");
+
+	var r	= contains(c,"223");
+	alert(r);
+
+	r	= contains(c,"12");
+	alert(r);
+}
+*/
+
+/*
+function testGetImage(){
+	getImage("123","231","ABC");
+}
+*/
+
+/*
+function testGetTwistImage(){
+	alert(getTwistImage("123",""));
+}
+*/
+
+/*
+function testGetTwist(){
+	alert(getTwist("123","231"));
+}
+*/
+
+function testInverse(){
+	var temp	= inverse("(ful,fru,fdr,fld) (fu,fr,fd,fl)");
+}
+
+////////////////////////////////////////////////////////////////
+////////						////////
+////////		/ test functies			////////
+////////						////////
+////////////////////////////////////////////////////////////////
+
+</script>
+
+</head>
+<body>
+
+<br>
+<br>
+<br>
+
+<div id="container">
+
+<table>
+<tr><td>
+
+<div class="control" onclick="newMem()">
+Maak een nieuwe geheugenplaats
+</div>
+
+</td><td>
+
+<div class="control" onclick="calculate()">
+Calculate
+</div>
+
+</td><td>
+
+<div class="control" onclick="clearDisplays()">
+Clear
+</div>
+
+</td><td>
+
+<div class="control" onclick="candidates()">
+Candidates
+</div>
+
+</td></tr>
+</table>
+
+<table width="100%">
+<tr><td>
+
+<div id="display" onclick="power()">
+Display
+</div>
+
+
+</td></tr><tr><td>
+
+
+<div id="disp" onclick="power()">
+Disp
+</div>
+
+</td></tr>
+</table>
+
+<br>
+
+<div id="memory">
+<table>
+Memory
+</table>
+</div>
+
+
+</div>
+
+</body>
+</html>
